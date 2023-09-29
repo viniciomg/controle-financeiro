@@ -2,26 +2,26 @@ import React, { useState } from 'react';
 import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
 import { Form, Input, Button } from 'antd';
-import db from './firebase'; // Importe o módulo de banco de dados
-
-const SalaryForm = () => {
-    const [salary,setSalary] = useState('');
+import db from '../Services/firebase'; // Importe o módulo de banco de dados
+import { useParams } from 'react-router-dom';
+const ExpenseForm = ({ year, month, user }) => {
+    const [expense, setExpense] = useState('');
     const [description, setDescription] = useState('');
-    const handleAddSalary = async () => {
+    const handleAddExpense = async () => {
         try {
+            console.log(user)
             // Acesse o Firestore usando getFirestore()
             const db = getFirestore();
 
             // Adicione a despesa à coleção 'expenses' no Firestore
-            await addDoc(collection(db, "salary"), {
-                value: salary,
-                description:description
+            await addDoc(collection(db, "expenses"), {
+                value: expense,
+                description:description,
+                year: year,
+                month: month,
+                userId: user.uid
             });
-            console.log("Document written");
-          
-
-            // Limpe o campo após a inserção
-            setSalary('');
+            setExpense('');
             setDescription('');
         } catch (e) {
             console.error("Error adding document: ", e);
@@ -38,18 +38,18 @@ const SalaryForm = () => {
             </Form.Item>
             <Form.Item>
                 <Input
-                    placeholder="Receita"
-                    value={salary}
-                    onChange={(e) => setSalary(e.target.value)}
+                    placeholder="Despesa"
+                    value={expense}
+                    onChange={(e) => setExpense(e.target.value)}
                 />
             </Form.Item>
-
             <Form.Item>
-                <Button type="primary" onClick={handleAddSalary}>
-                    Adicionar Receita
-            </Button>
+                <Button type="primary" onClick={handleAddExpense}>
+                    Adicionar Despesa
+        </Button>
             </Form.Item>
         </Form>
     );
 };
-export default SalaryForm;
+
+export default ExpenseForm;
