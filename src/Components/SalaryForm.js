@@ -1,35 +1,43 @@
 import React, { useState } from 'react';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc } from 'firebase/firestore';
 import { Form, Input, Button } from 'antd';
 import db from '../Services/firebase'; // Importe o módulo de banco de dados
 
-const SalaryForm = ({ year, month ,user}) => {
+const SalaryForm = ({ year, month, user, onAddSalary }) => {
     const [salary, setSalary] = useState('');
     const [description, setDescription] = useState('');
-
     const handleAddSalary = async () => {
         try {
-            // Acesse o Firestore usando getFirestore()
             const db = getFirestore();
-
-            // Adicione a despesa à coleção 'expenses' no Firestore
-            await addDoc(collection(db, "salary"), {
+            const uid = user.uid;
+            const clientCollectionRef = collection(db, 'ClientCollection');
+            const clientDocRef = doc(clientCollectionRef, uid);
+            const ExpenseCollectionRef = collection(clientDocRef, 'salary')
+            const expenseData = {
                 value: salary,
                 description: description,
                 year: year,
                 month: month,
-                userId:user.uid
-            });
-            console.log("Document written");
+            };
+            const newSalaryDocRef = await addDoc(ExpenseCollectionRef, expenseData);
 
-
-            // Limpe o campo após a inserção
+            const newSalary = {
+                key: newSalaryDocRef.id, // Defina 'newExpense' com os dados da despesa
+                value: salary,
+                description: description,
+                year: year,
+                month: month,
+                type: "salary"
+            };
+            onAddSalary(newSalary);
             setSalary('');
             setDescription('');
+
         } catch (e) {
             console.error("Error adding document: ", e);
-        }
-    };
+        };
+    }
+
     return (
         <Form layout="inline">
             <Form.Item>

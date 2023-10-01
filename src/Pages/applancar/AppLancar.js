@@ -4,10 +4,11 @@ import { Popconfirm, Button, Layout, Row, Col, Card, Statistic, Table, Breadcrum
 import ExpenseForm from '../../Components/ExpenseForm';
 import SalaryForm from '../../Components/SalaryForm';
 import UserMenu from '../../Components/UserMenu';
-import { doc, onSnapshot, collection, query, where, deleteDoc } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where, deleteDoc, getDocs } from "firebase/firestore";
 import { useParams, Link } from 'react-router-dom';
 import { DeleteOutlined, UserOutlined, SettingOutlined, DownOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+
 
 
 import './AppLancar.css';
@@ -29,88 +30,110 @@ function AppLancar() {
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
-          const user = JSON.parse(storedUser);
-          setUser(user);
+            const user = JSON.parse(storedUser);
+            setUser(user);
         }
-      
-      }, []);
-      
-      useEffect(() => {
-        const fetchExpenses = async () => {
-          try {
-            const storedUser =  JSON.parse(localStorage.getItem('user'));
-            const q = query(collection(db, "expenses"));            
-            const unsub = onSnapshot(q, (querySnapshot) => {
-               
-              const expensesData = querySnapshot.docs
-                .filter((doc) => {
-                  const data = doc.data();
-                  return data.year === year && data.month === month && data.userId === storedUser?.uid;
-                })
-                .map((doc) => ({
-                  key: doc.id,
-                  description: doc.data().description,
-                  value: doc.data().value,
-                  type: 'expenses'
-                }));
-      
-              setExpenses(expensesData);
-            });
-          } catch (error) {
-            console.error('Erro ao buscar despesas:', error);
-          }
-        }; 
-      
-    
-          fetchExpenses(); // Chame fetchExpenses apenas quando user estiver definido
-        
-      
-      }, [user, year, month]);
 
+    }, []);
     useEffect(() => {
-        
-        const fetchSalary = async () => {
+        const fetchExpense = async () => {
             try {
-                const qS = query(collection(db, "salary"));
-                const storedUser =  JSON.parse(localStorage.getItem('user'));
+                const storedUser = JSON.parse(localStorage.getItem('user'));
+                const q = query(collection(db, "ClientCollection"));
+                const snp = await getDocs(q);
+                const documents = [];
+                for (const docRef of snp.docs) {
+                    const usersCollectionRef = collection(docRef.ref, 'UsersCollection');
+                    const userQuery = query(usersCollectionRef, where('userId', '==', storedUser.uid));
+                    const userQuerySnapshot = await getDocs(userQuery);
+                    if (!userQuerySnapshot.empty) {
+                        documents.push({
+                            clientId: docRef.id,
+                            ...docRef.data(),
+                        });
+                    }
+                }
+                const clientCollectionRef = collection(db, 'ClientCollection');
+                const clientDocRef = doc(clientCollectionRef, documents[0].clientId);
+                const qS = query(collection(clientDocRef, 'expenses'));
                 const unsubS = onSnapshot(qS, (querySnapshot) => {
-                
-                    const salaryData = querySnapshot.docs
+                    const expensesData = querySnapshot.docs
                         .filter((doc) => {
                             const data = doc.data();
-                            return data.year === year && data.month === month && data.userId === storedUser?.uid;
+                            return data.year === year && data.month === month;
+                        })
+                        .map((doc) => ({
+                            key: doc.id,
+                            description: doc.data().description,
+                            value: doc.data().value,
+                            type: 'expense'
+                        }));
+                    console.log(expensesData)
+                    setExpenses(expensesData);
+                });
+            } catch (error) {
+                console.error('Erro ao buscar expenses:', error);
+            }
+        };
+
+        fetchExpense();
+
+    }, [user, year, month]);
+
+    useEffect(() => {
+
+        const fetchSalary = async () => {
+            try {
+                const storedUser = JSON.parse(localStorage.getItem('user'));
+                const q = query(collection(db, "ClientCollection"));
+                const snp = await getDocs(q);
+                const documents = [];
+                for (const docRef of snp.docs) {
+                    const usersCollectionRef = collection(docRef.ref, 'UsersCollection');
+                    const userQuery = query(usersCollectionRef, where('userId', '==', storedUser.uid));
+                    const userQuerySnapshot = await getDocs(userQuery);
+                    if (!userQuerySnapshot.empty) {
+                        documents.push({
+                            clientId: docRef.id,
+                            ...docRef.data(),
+                        });
+                    }
+                }
+                const clientCollectionRef = collection(db, 'ClientCollection');
+                const clientDocRef = doc(clientCollectionRef, documents[0].clientId);
+                const qS = query(collection(clientDocRef, 'salary'));
+                const unsubS = onSnapshot(qS, (querySnapshot) => {
+                    const expensesData = querySnapshot.docs
+                        .filter((doc) => {
+                            const data = doc.data();
+                            return data.year === year && data.month === month;
                         })
                         .map((doc) => ({
                             key: doc.id,
                             description: doc.data().description,
                             value: doc.data().value,
                             type: 'salary'
-
                         }));
-                    setSalary(salaryData);
+                    console.log(expensesData)
+                    setSalary(expensesData);
                 });
             } catch (error) {
-                console.error('Erro ao buscar salaruis:', error);
+                console.error('Erro ao buscar expenses:', error);
             }
         };
-       
         fetchSalary();
-        
+
     }, [user, year, month])
 
 
-    const handleAddExpense = async (expense) => {
-        setExpenses([...expenses, expense]);
-        const expensesCollection = db.collection('expenses');
-        const { description, value, year, month } = expense; // 
-        await expensesCollection.add({ description, value, year, month });
+    const handleAddExpense = (newExpense) => {
+        setExpenses([...expenses, newExpense]);
     };
 
-    const handleAddSalary = async (salarys) => {
-        setSalary([...salarys, salary]);
-        const salaryCollection = db.collection('salary');
-        const { description, value, year, month } = salary; // Suponha que salary tenha campos description, value, year e month.
-        await salaryCollection.add({ description, value, year, month });
+
+    const handleAddSalary = async (newsalary) => {
+        setSalary([...salary, newsalary]);
+
     };
 
     useEffect(() => {
@@ -119,7 +142,7 @@ function AppLancar() {
 
     const calculateTotalSalary = () => {
         return salary.length > 0
-            ? salary.reduce((acc, expense) => acc + parseFloat(expense.value), 0)
+            ? salary.reduce((acc, salary) => acc + parseFloat(salary.value), 0)
             : 0;
     };
 
@@ -139,15 +162,19 @@ function AppLancar() {
 
     const handleDelete = async (recordKey, collectionName) => {
         try {
-            console.log(collectionName)
-            const documentRef = doc(db, collectionName, recordKey);
+            const storedUser = JSON.parse(localStorage.getItem('user'));
+            const clientCollectionRef = collection(db, 'ClientCollection');
+            const clientDocRef = doc(clientCollectionRef, storedUser.uid);
+            const documentRef = doc(clientDocRef, collectionName, recordKey);
             await deleteDoc(documentRef);
         } catch (error) {
-            console.error('Erro ao excluir despesa:', error);
+            console.error('Erro ao excluir lançamento:', error);
         }
     };
 
+
     const remainingBalance = totalSalary - totalExpense;
+
     const columns = [
         {
             title: 'Descrição',
@@ -178,15 +205,15 @@ function AppLancar() {
 
     const items = [
         {
-          key: 'Calendar',
-          content: <Link to="/Calendar">Calendario</Link>,
+            key: 'Calendar',
+            content: <Link to="/Calendar">Calendario</Link>,
         },
         {
-          key: 'AppLancar',
-          content: <Link to={`/AppLancar/${year}/${month}`}></Link>,
+            key: 'AppLancar',
+            content: <Link to={`/AppLancar/${year}/${month}`}></Link>,
         },
-  
-      ];
+
+    ];
 
 
     const handleLogout = () => {

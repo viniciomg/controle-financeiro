@@ -3,6 +3,8 @@ import { Form, Input, Button, Row, Col, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { getFirestore, doc, setDoc, collection ,addDoc} from 'firebase/firestore';
+import db  from '..//../Services/firebase'
 
 const Login = () => {
     const navigate = useNavigate(); 
@@ -18,7 +20,16 @@ const Login = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       if(user){
+        const clientCollectionRef = collection(db, 'ClientCollection');     
+        const clientDocRef = doc(clientCollectionRef, user.uid); 
+        const usersCollectionRef = collection(clientDocRef, 'UsersCollection');
+        const userData = {
+          name: user.displayName,
+          userId: user.uid         
+        };
+        await addDoc(usersCollectionRef, userData);
         localStorage.setItem('user', JSON.stringify(user));
+       
         navigate(`/Calendar`);
       }
       // Você pode redirecionar o usuário para a próxima página ou executar ações adicionais aqui.

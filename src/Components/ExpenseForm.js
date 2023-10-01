@@ -1,26 +1,39 @@
 import React, { useState } from 'react';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, doc } from 'firebase/firestore';
 
 import { Form, Input, Button } from 'antd';
 import db from '../Services/firebase'; // Importe o módulo de banco de dados
 import { useParams } from 'react-router-dom';
-const ExpenseForm = ({ year, month, user }) => {
+const ExpenseForm = ({ year, month, user, onAddExpense }) => {
     const [expense, setExpense] = useState('');
     const [description, setDescription] = useState('');
     const handleAddExpense = async () => {
         try {
-            console.log(user)
-            // Acesse o Firestore usando getFirestore()
-            const db = getFirestore();
 
-            // Adicione a despesa à coleção 'expenses' no Firestore
-            await addDoc(collection(db, "expenses"), {
+            const db = getFirestore();
+            const uid = user.uid;
+            const clientCollectionRef = collection(db, 'ClientCollection');
+            const clientDocRef = doc(clientCollectionRef, uid);
+            const ExpenseCollectionRef = collection(clientDocRef, 'expenses')
+            const expenseData = {
                 value: expense,
-                description:description,
+                description: description,
                 year: year,
                 month: month,
                 userId: user.uid
-            });
+            };
+            const newExpenseRef = await addDoc(ExpenseCollectionRef, expenseData);
+
+            const newExpense = {
+                key: newExpenseRef.id,// Defina 'newExpense' com os dados da despesa
+                value: expense,
+                description: description,
+                year: year,
+                month: month,
+                userId: user.uid,
+                type: "expenses"
+            };
+            onAddExpense(newExpense);
             setExpense('');
             setDescription('');
         } catch (e) {
