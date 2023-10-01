@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Form, Input, Button, Row, Col, Card } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { getFirestore, doc, setDoc, collection ,addDoc} from 'firebase/firestore';
-import db  from '..//../Services/firebase'
+import { getFirestore, doc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import db from '..//../Services/firebase'
 
 const Login = () => {
-    const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const onFinish = (values) => {
     console.log('Valores do formulário:', values);
   };
@@ -15,22 +15,38 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
-
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      if(user){
-        const clientCollectionRef = collection(db, 'ClientCollection');     
-        const clientDocRef = doc(clientCollectionRef, user.uid); 
-        const usersCollectionRef = collection(clientDocRef, 'UsersCollection');
-        const userData = {
-          name: user.displayName,
-          userId: user.uid         
-        };
-        await addDoc(usersCollectionRef, userData);
+      if (user) {
+        const documents = [];
+        const snpashot = await getDocs(query(collection(db, "ClientCollection")));
+        for (const doc of snpashot.docs) {
+          const userRef = collection(doc.ref, 'UsersCollection');
+          const userQuery = query(userRef, where('userId', '==', user.uid))
+          const userQuerySnapshot = await getDocs(userQuery);
+          if (!userQuerySnapshot.empty) {
+            documents.push({
+              clientId: doc.id,
+              ...doc.data(),
+            });
+          }
+        }
+        if(documents.length ==0){
+          const clientDocRef = await addDoc(collection(db, "ClientCollection"), {
+            email: user.email,
+          });
+          const usersCollectionRef = collection(clientDocRef, 'UsersCollection');
+          const userData = {
+            name: user.displayName,
+            userId: user.uid
+          };
+          await addDoc(usersCollectionRef, userData)
+        }
         localStorage.setItem('user', JSON.stringify(user));
-       
-        navigate(`/Calendar`);
+        const year= new Date().getFullYear()
+        const month = new Date().getMonth();
+        navigate(`/AppLancar/${year}/${month}`);
       }
       // Você pode redirecionar o usuário para a próxima página ou executar ações adicionais aqui.
     } catch (error) {

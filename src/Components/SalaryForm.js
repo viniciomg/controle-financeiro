@@ -3,7 +3,7 @@ import { getFirestore, collection, addDoc, doc } from 'firebase/firestore';
 import { Form, Input, Button } from 'antd';
 import db from '../Services/firebase'; // Importe o módulo de banco de dados
 
-const SalaryForm = ({ year, month, user, onAddSalary }) => {
+const SalaryForm = ({ year, month, user, onAddSalary,docRef }) => {
     const [salary, setSalary] = useState('');
     const [description, setDescription] = useState('');
     const handleAddSalary = async () => {
@@ -11,8 +11,7 @@ const SalaryForm = ({ year, month, user, onAddSalary }) => {
             const db = getFirestore();
             const uid = user.uid;
             const clientCollectionRef = collection(db, 'ClientCollection');
-            const clientDocRef = doc(clientCollectionRef, uid);
-            const ExpenseCollectionRef = collection(clientDocRef, 'salary')
+            const ExpenseCollectionRef = collection(docRef, 'salary')
             const expenseData = {
                 value: salary,
                 description: description,

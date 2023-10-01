@@ -4,7 +4,7 @@ import { getFirestore, collection, addDoc, doc } from 'firebase/firestore';
 import { Form, Input, Button } from 'antd';
 import db from '../Services/firebase'; // Importe o módulo de banco de dados
 import { useParams } from 'react-router-dom';
-const ExpenseForm = ({ year, month, user, onAddExpense }) => {
+const ExpenseForm = ({ year, month, user, onAddExpense,docRef }) => {
     const [expense, setExpense] = useState('');
     const [description, setDescription] = useState('');
     const handleAddExpense = async () => {
@@ -14,7 +14,7 @@ const ExpenseForm = ({ year, month, user, onAddExpense }) => {
             const uid = user.uid;
             const clientCollectionRef = collection(db, 'ClientCollection');
             const clientDocRef = doc(clientCollectionRef, uid);
-            const ExpenseCollectionRef = collection(clientDocRef, 'expenses')
+            const ExpenseCollectionRef = collection(docRef, 'expenses')
             const expenseData = {
                 value: expense,
                 description: description,

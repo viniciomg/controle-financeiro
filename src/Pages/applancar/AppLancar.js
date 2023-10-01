@@ -6,7 +6,7 @@ import SalaryForm from '../../Components/SalaryForm';
 import UserMenu from '../../Components/UserMenu';
 import { doc, onSnapshot, collection, query, where, deleteDoc, getDocs } from "firebase/firestore";
 import { useParams, Link } from 'react-router-dom';
-import { DeleteOutlined, UserOutlined, SettingOutlined, DownOutlined } from '@ant-design/icons';
+import { DeleteOutlined, UserOutlined, SettingOutlined, DownOutlined, AlignCenterOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 
@@ -20,6 +20,7 @@ function AppLancar() {
     const { year, month } = useParams();
     const [expenses, setExpenses] = useState([]);
     const [salary, setSalary] = useState(0);
+    const [ClientDocRef, setClientDocRef] = useState(null);
     const { Header, Content } = Layout;
 
     const [userMenuVisible, setUserMenuVisible] = useState(false);
@@ -54,7 +55,9 @@ function AppLancar() {
                     }
                 }
                 const clientCollectionRef = collection(db, 'ClientCollection');
+                console.log(documents[0].clientId)
                 const clientDocRef = doc(clientCollectionRef, documents[0].clientId);
+                setClientDocRef(clientDocRef)
                 const qS = query(collection(clientDocRef, 'expenses'));
                 const unsubS = onSnapshot(qS, (querySnapshot) => {
                     const expensesData = querySnapshot.docs
@@ -101,6 +104,7 @@ function AppLancar() {
                 }
                 const clientCollectionRef = collection(db, 'ClientCollection');
                 const clientDocRef = doc(clientCollectionRef, documents[0].clientId);
+                setClientDocRef(clientDocRef)
                 const qS = query(collection(clientDocRef, 'salary'));
                 const unsubS = onSnapshot(qS, (querySnapshot) => {
                     const expensesData = querySnapshot.docs
@@ -164,7 +168,7 @@ function AppLancar() {
         try {
             const storedUser = JSON.parse(localStorage.getItem('user'));
             const clientCollectionRef = collection(db, 'ClientCollection');
-            const clientDocRef = doc(clientCollectionRef, storedUser.uid);
+            const clientDocRef = doc(clientCollectionRef, ClientDocRef.id);
             const documentRef = doc(clientDocRef, collectionName, recordKey);
             await deleteDoc(documentRef);
         } catch (error) {
@@ -220,6 +224,13 @@ function AppLancar() {
         localStorage.removeItem('user');
         navigate(`/`);
     };
+    const meses = [
+        'Janeiro', 'Fevereiro', 'Março', 'Abril',
+        'Maio', 'Junho', 'Julho', 'Agosto',
+        'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      ];
+
+      const nomeDoMes = meses[month - 1];
 
     return (
         <Layout>
@@ -234,7 +245,7 @@ function AppLancar() {
                     <Col xs={24} sm={24} md={5}>
                         <div className="header-icons">
                             {user ? (
-                                <UserMenu user={user} onLogout={handleLogout} />
+                                <UserMenu user={user} docRef={ClientDocRef} onLogout={handleLogout} />
                             ) : (
                                     <UserOutlined style={{ fontSize: '24px', marginLeft: '16px' }} />
                                 )}
@@ -253,15 +264,15 @@ function AppLancar() {
                     <Link to={`/AppLancar/${year}/${month}`}>Lançamentos</Link>
                 </Breadcrumb.Item>
             </Breadcrumb>
-
+            <h2 style={{textAlign:'center'}}>{nomeDoMes}/{year}</h2>
             <Content style={{ padding: '24px' }}>
                 <Row gutter={[16, 16]}>
                     <Col xs={24} sm={24} md={14}>
                         <Card title="Lançar receitas">
-                            <SalaryForm year={year} month={month} user={user} onAddSalary={handleAddSalary} />
+                            <SalaryForm year={year} month={month} user={user} docRef={ClientDocRef} onAddSalary={handleAddSalary} />
                         </Card>
                         <Card title="Lançar Despesas">
-                            <ExpenseForm year={year} month={month} user={user} onAddExpense={handleAddExpense} />
+                            <ExpenseForm year={year} month={month} user={user} docRef={ClientDocRef} onAddExpense={handleAddExpense} />
                         </Card>
                     </Col>
                     <Col xs={24} sm={24} md={10}>
